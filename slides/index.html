@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="de">
+
+<head>
+    <meta charset="utf-8">
+    <title>CQRS and Event-Sourcing with Akka</title>
+
+    <meta name="description" content="CRRS, ES with Akka">
+    <meta name="author" content="Michael Pisula">
+
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <link rel="stylesheet" href="css/reveal.min.css">
+    <link rel="stylesheet" href="css/theme/tng.css" id="theme">
+    <link rel="stylesheet" href="css/custom.css">
+    <!-- For syntax highlighting -->
+    <link rel="stylesheet" href="lib/css/github.css">
+
+    <script data-main="js/main" src="js/vendor/require.js"></script>
+
+    <!-- If the query includes 'print-pdf', include the PDF print sheet -->
+    <script>
+        if (window.location.search.match(/print-pdf/gi)) {
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.type = 'text/css';
+            link.href = 'css/print/pdf.css';
+            document.getElementsByTagName('head')[0].appendChild(link);
+        }
+    </script>
+
+    <!--[if lt IE 9]>
+    <script src="lib/js/html5shiv.js"></script>
+    <![endif]-->
+</head>
+
+<!--
+  Was machen die extra CSS Klassen?
+  charred: charred-trail Plugin aktivieren,
+  auto-fragment: alle <li> innerhalb von <ul> und <ol> in Fragments umwandeln, d.h. bei Tastendruck erst einblenden
+-->
+<body class="charred auto-fragment">
+
+
+<!-- Titel-Slide -->
+<section>
+    <h2>CQRS and Event-Sourcing</h2>
+
+    <h2>with Akka</h2>
+
+    <p style="padding-top:15%">
+        <a href="mailto:michael.pisula@tngtech.com">Michael Pisula</a>,
+        Unterföhring, 2015-03-27
+    </p>
+    <a href="http://www.tngtech.com"><img class="logo" src="img/tng.svg"></a>
+</section>
+
+<!-- Inhalt ab hier, für eigene Präsentationen einfach löschen -->
+<!-- Gibt man data-title="foo" an, wird eine Übersichtseite mit Links hier in die Präsentation eingefügt -->
+<section>
+    <section>
+        <h1>The Problem</h1>
+    </section>
+    <section>
+        <h2>The usual suspect</h2>
+        <img class="fragment" src="img/non-cqrs.svg"/>
+        <aside class="notes">
+            <ul>
+                <li>One model to rule them all</li>
+                <li></li>
+                <li></li>
+            </ul>
+        </aside>
+    </section>
+    <section>
+        <h2>But that's awesome!?</h2>
+        <img class="fragment" src="img/unicorn_pooping_a_rainbow_20px.jpg"/>
+        <aside class="notes">
+            <ul>
+                <li>Problems come with growth</li>
+                <li>We add more servers to run the application</li>
+                <li>We add distributed caches in front the DB</li>
+                <li>We use Master/Slave DB-Setup</li>
+                <li>And sometimes we need distributed transactions</li>
+            </ul>
+        </aside>
+    </section>
+    <section data-background-image="img/red-sea-moses-parting-734991412.jpg">
+        <h2 class="img-background">Let's try a different approach</h2>
+    </section>
+</section>
+<section>
+    <section>
+        <h2>Command Query Responsibility Segregation</h2>
+        <blockquote cite="Greg Young" class="fragment">
+            CQRS is simply the creation of two objects where there was previously only one.
+        </blockquote>
+        <ul>
+            <li>grew out of DDD</li>
+            <li>Separation of Commands and Queries</li>
+            <li>Not used globally, break domain into bounded context, use CQRS in single contexts</li>
+            <li>Command: any method that mutates state</li>
+            <li>Query: any method that returns a value</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>CQRS</h2>
+        <img src="img/cqrs-model.svg" class="fragment"/>
+    </section>
+    <section>
+        <h2>Commands</h2>
+        <ul>
+            <li>Commands capture user intent</li>
+            <li>Commands cover a single use case</li>
+        </ul>
+    </section>
+    <section>
+        <h2>Queries</h2>
+        <ul>
+            <li>No domain logic necessary</li>
+            <li>Can use denormalized view</li>
+            <li>Optimized for fast data access</li>
+            <li>Use different Query Models for different queries</li>
+        </ul>
+    </section>
+    <section>
+        <h2>Where is the consistency?</h2>
+        <ul>
+            <li>The most often heard argument against CQRS</li>
+            <li>Query data can return outdated data until updated</li>
+            <li>Does it matter?</li>
+            <li>We already work with stale data</li>
+        </ul>
+        <img class="fragment" src="img/delay.svg"/>
+    </section>
+
+</section>
+
+<section>
+    <section>
+        <h2>Event-Sourcing</h2>
+        <ul>
+            <li>Store history of data, not just current state</li>
+            <li>Use past events as the source of truth</li>
+        </ul>
+    </section>
+    <section>
+        <h2>Event</h2>
+        <ul>
+            <li>Immutable</li>
+            <li>Represent the past</li>
+        </ul>
+    </section>
+    <section>
+        <img src="img/non-es.svg"/>
+    </section>
+    <section>
+        <img src="img/es.svg"/>
+    </section>
+    <section>
+        <h2>Event-Sourcing</h2>
+        <ul>
+            <li>Events can be replayed to restore state in case of errors and failures</li>
+            <li>Events can be replayed to be used for new features added at a later point</li>
+            <li>Past state can be restored, very useful for debugging</li>
+            <li>Only append and replay operations needed</li>
+        </ul>
+    </section>
+    <section>
+        <h2>Combining CQRS and ES</h2>
+        <img src="img/es_cqrs.svg"/>
+        <aside class="notes">
+            <ul>
+                <li>Query model is notified on updates on Command model</li>
+                <li>With Event-Sourcing in Command model events can be used for notification</li>
+                <li>No overhead for storing and notification</li>
+                <li>Especially good if storing and notifying can be done at once</li>
+            </ul>
+        </aside>
+    </section>
+
+</section>
+
+<section>
+    <section>
+        <h2>Akka</h2>
+        <ul>
+            <li>Toolkit for performant, distributed applications</li>
+            <li>Actors, Location Transparency and Fault Tolerance</li>
+        </ul>
+    </section>
+    <section>
+        <h2>Actors</h2>
+        <ul>
+            <li>Objects communicating only using messages</li>
+            <li>Messages are immutable</li>
+            <li>Each actor only processes one message at once</li>
+            <li>Supervision is used to deal with errors</li>
+        </ul>
+    </section>
+    <section>
+        <h2>Akka Persistence</h2>
+        <ul>
+            <li>Allows to persist actor state</li>
+            <li>Based on event-sourcing</li>
+            <li>Events are replayed on failure</li>
+            <li>Supports Snapshots</li>
+            <li>Views allow to subscribe to actor events</li>
+        </ul>
+        <aside class="notes">
+        <ul>
+            <li>Originated in eventsourced extension</li>
+            <li>Introduced last year with Akka 2.3</li>
+            <li>Streamlining in Akka 2.3.4, more focus on Event-Sourcing</li>
+            <li>Next big update will focus on Query side</li>
+            <li>Pluggable persistence technologies via plugins (e.g. kafka, mongo, cassandra...)</li>
+        </ul>
+        </aside>
+    </section>
+    <section>
+        <h2>PersistentActor</h2>
+        <ul>
+            <li>Central concept of Akka Persistence</li>
+            <li>An actor that receives Commands and persists Events</li>
+            <li>Supports recovery, snapshots</li>
+            <li>Ideal for Event Sourcing and Command side CQRS</li>
+        </ul>
+    </section>
+    <section>
+        <h2>PersistentActor</h2>
+        <pre><code class="scala" data-noescape>
+class AnActor extends ^1^PersistentActor^^{
+    override def ^2^persistenceId^^: String = "Issues"
+
+
+    override def ^3^receiveCommand^^: Receive = {
+        case cmd: Command =>
+            ^4^persist^^(Event(cmd)) { evt =>
+                ^5^updateState(evt)^^
+            }
+    }
+    override def ^6^receiveRecover^^: Receive = {
+        case event: Event =>
+          updateState(event)
+    }
+
+    def updateState(event: Event) = event match {
+        ...
+    }
+}
+        </code></pre>
+    </section>
+    <section>
+        <h2>PersistentView</h2>
+        <ul>
+            <li>Subscribes to events of persistent Actor</li>
+            <li>Events will be replayed to View</li>
+            <li>Several views can subscribe to same actor</li>
+            <li>Each view can only subscribe to one actor</li>
+        </ul>
+    </section>
+    <section>
+        <h2>PersistentView</h2>
+        <pre><code class="scala" data-noescape>
+class AView extends ^1^PersistentView^^ {
+    override def ^2^viewId^^: String = "IssuesView"
+
+    override def ^3^persistenceId^^: String = "Issues"
+
+    override def receive: Receive = {
+        case evt: Event =>
+        ...
+    }
+}
+        </code></pre>
+    </section>
+</section>
+<section>
+    <section>
+        <h2>Walkthrough</h2>
+        <h3>The Issue Tracker</h3>
+    </section>
+    <section>
+        <h2>Features</h2>
+        <ul>
+            <li>Create new Issues</li>
+            <li>Add comments</li>
+            <li>Change severity</li>
+            <li>Close Issues</li>
+            <li>Show all issues</li>
+            <li>Show all comments for one issues</li>
+        </ul>
+    </section>
+
+</section>
+
+<section>
+    <h2>CQRS/ES</h2>
+    <ul>
+        <li>No silver bullet, use with care</li>
+        <li>Great with microservices, write and read model can be separate services</li>
+        <li>Has to fit the domain</li>
+        <li>Just one tool in the toolbox</li>
+    </ul>
+</section>
+
+<section>
+    <h1>Thank you!</h1>
+
+    <h2 class="fragment">Question?</h2>
+
+    <table class="contact">
+        <tr>
+            <td>
+                <div class="email"></div>
+            </td>
+            <td><a href="mailto:michael.pisula@tngtech.com"> michael.pisula@tngtech.com</a></td>
+        </tr>
+        <tr>
+            <td>
+                <div class="xing"></div>
+            </td>
+            <td><a href="https://www.xing.com/profile/Michael_Pisula/">Michael_Pisula</a></td>
+        </tr>
+        <tr>
+            <td>
+                <div class="twitter"></div>
+            </td>
+            <td><a href="http://www.twitter.com/MichaelPisula">@MichaelPisula</a></td>
+        </tr>
+    </table>
+    <a href="http://www.tngtech.com"><img class="logo" src="img/tng.svg"></a>
+</section>
+
+</body>
+</html>
