@@ -7,7 +7,7 @@
 		revision="1.0"
 		conf="compile"
 		confs="compile, runtime, test, provided, optional, compile-internal, runtime-internal, test-internal, plugin, sources, docs, pom, scala-tool"
-		date="20150327091832"/>
+		date="20150405113608"/>
 	<dependencies>
 		<module organisation="ch.qos.logback" name="logback-classic">
 			<revision name="1.1.2" status="release" pubdate="20140402214238" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://logback.qos.ch" downloaded="false" searched="false" default="false" conf="default, compile, runtime, default(compile), master" position="12">
@@ -211,10 +211,10 @@
 					<artifact name="akka-slf4j_2.11" type="jar" ext="jar" status="no" details="" size="15459" time="0" location="/home/michael/.ivy2/cache/com.typesafe.akka/akka-slf4j_2.11/jars/akka-slf4j_2.11-2.3.9.jar">
 						<origin-location is-local="false" location="file:/home/michael/Tools/activator-1.3.2/repository/com.typesafe.akka/akka-slf4j_2.11/2.3.9/jars/akka-slf4j_2.11.jar"/>
 					</artifact>
-					<artifact name="akka-slf4j_2.11" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="1971" time="492" location="/home/michael/.ivy2/cache/com.typesafe.akka/akka-slf4j_2.11/srcs/akka-slf4j_2.11-2.3.9-sources.jar">
+					<artifact name="akka-slf4j_2.11" type="src" ext="jar" extra-classifier="sources" status="no" details="" size="1971" time="0" location="/home/michael/.ivy2/cache/com.typesafe.akka/akka-slf4j_2.11/srcs/akka-slf4j_2.11-2.3.9-sources.jar">
 						<origin-location is-local="false" location="http://repo1.maven.org/maven2/com/typesafe/akka/akka-slf4j_2.11/2.3.9/akka-slf4j_2.11-2.3.9-sources.jar"/>
 					</artifact>
-					<artifact name="akka-slf4j_2.11" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="27064" time="438" location="/home/michael/.ivy2/cache/com.typesafe.akka/akka-slf4j_2.11/docs/akka-slf4j_2.11-2.3.9-javadoc.jar">
+					<artifact name="akka-slf4j_2.11" type="doc" ext="jar" extra-classifier="javadoc" status="no" details="" size="27064" time="0" location="/home/michael/.ivy2/cache/com.typesafe.akka/akka-slf4j_2.11/docs/akka-slf4j_2.11-2.3.9-javadoc.jar">
 						<origin-location is-local="false" location="http://repo1.maven.org/maven2/com/typesafe/akka/akka-slf4j_2.11/2.3.9/akka-slf4j_2.11-2.3.9-javadoc.jar"/>
 					</artifact>
 				</artifacts>

@@ -4,7 +4,7 @@
 		module="cqrs-es$sources_javadoc_2.11"
 		revision="1.0"
 		status="integration"
-		publication="20150327091832"
+		publication="20150405113608"
 	/>
 	<configurations>
 		<conf name="compile" visibility="public" description=""/>

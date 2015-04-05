@@ -4,7 +4,7 @@
 		module="cqrs-es$sources_2.11"
 		revision="1.0"
 		status="integration"
-		publication="20150327091831"
+		publication="20150405113607"
 	/>
 	<configurations>
 		<conf name="default" visibility="public" description=""/>
