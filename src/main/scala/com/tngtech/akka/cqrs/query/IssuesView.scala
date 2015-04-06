@@ -31,11 +31,9 @@ class IssuesView extends PersistentView with ActorLogging {
     case GetAll =>
       log.debug("Returning issue list")
       sender ! IssueSet(existingIssues.keys)
-    case e: IssueView.Query =>
+    case query: IssueView.Query if(existingIssues.contains(query.issue)) =>
       log.info("Received issue query")
-      if(existingIssues.contains(e.issue)) {
-        existingIssues.get(e.issue).get.forward(e)
-      }
+        existingIssues.get(query.issue).get forward query
     case q => log.info("Unknown query \"{}\"", q)
   }
 }

@@ -53,7 +53,7 @@
 
     <p style="padding-top:15%">
         <a href="mailto:michael.pisula@tngtech.com">Michael Pisula</a>,
-        Unterföhring, 2015-03-27
+        Unterföhring, 2015-04-14
     </p>
     <a href="http://www.tngtech.com"><img class="logo" src="img/tng.svg"></a>
 </section>
@@ -77,7 +77,7 @@
     </section>
     <section>
         <h2>But that's awesome!?</h2>
-        <img class="fragment" src="img/unicorn_pooping_a_rainbow_20px.jpg"/>
+        <img src="img/unicorn_pooping_a_rainbow_20px.jpg"/>
         <aside class="notes">
             <ul>
                 <li>Problems come with growth</li>
@@ -289,15 +289,165 @@ class AView extends ^1^PersistentView^^ {
         <ul>
             <li>Create new Issues</li>
             <li>Add comments</li>
-            <li>Change severity</li>
             <li>Close Issues</li>
             <li>Show all issues</li>
             <li>Show all comments for one issues</li>
         </ul>
     </section>
+    <section>
+        <h2>Command model</h2>
+        <ul>
+            <li>Identify issues by name</li>
+            <li>Only on issue per name</li>
+            <li>No action allowed after issue closed</li>
+        </ul>
+    </section>
+    <section>
+        <h2>Query side</h2>
+        <ul>
+            <li>No logic, just return what is requested</li>
+        </ul>
+    </section>
+    <section>
+        <h2>Create new Issue</h2>
+        <pre><code>
+class Issues extends PersistentActor with ActorLogging {
+override def persistenceId: String = actorName
 
+var existingIssues = Map.empty[String, ActorRef]
+
+override def receiveRecover: Receive = {
+    case event: Event =>
+        updateState(event)
+}
+
+def updateState(event: Event) = event match {
+    case IssueCreated(name) =>
+        existingIssues = existingIssues.updated(name, context.actorOf(Issue.props(name), Issue.actorName(name)))
+}
+
+override def receiveCommand: Receive = {
+    case CreateNewIssue(name) if (!existingIssues.contains(name)) =>
+        persist(IssueCreated(name)) { evt =>
+            updateState(evt)
+    }
+    case CreateNewIssue(name) =>
+        log.error("Issue \"{}\" already exists", name)
+    case cmd: Issue.Command if (existingIssues.contains(cmd.issue)) =>
+        existingIssues.get(cmd.issue).get forward cmd
+    case cmd: Issue.Command =>
+        log.error("No issue \"{}\" found", cmd.issue)
+}
+}
+        </code></pre>
+    </section>
+    <section>
+        <h2>Add Comment</h2>
+    <pre><code>
+class Issue(name: String) extends PersistentActor with ActorLogging {
+    override def persistenceId: String = actorName(name)
+
+    override def receiveRecover: Receive = {
+        case event: Event => updateStatus(event)
+    }
+
+    def updateStatus(event: Event): Unit = event match {
+        case e => log.debug("processing event \"{}\"",e)
+    }
+
+    override def receiveCommand: Receive = {
+        case AddComment(_, author, text) =>
+            persist(CommentAdded(author, LocalDateTime.now(), text)) {
+                updateStatus(_)
+            }
+    }
+}
+    </code></pre>
+    </section>
+    <section>
+        <h2>Close Issue</h2>
+        <pre><code>
+class Issue(name: String) extends PersistentActor with ActorLogging {
+    override def persistenceId: String = actorName(name)
+
+    var closed = false
+
+    override def receiveRecover: Receive = {
+        ...
+    }
+
+    def updateStatus(event: Event): Unit = event match {
+        case IssueClosed => closed = true
+    }
+
+    override def receiveCommand: Receive = {
+        case _ if(closed) => log.error("Issue \"{}\" is already closed", name)
+        case CloseIssue(_, user, message) =>
+            persist(CommentAdded(user, LocalDateTime.now(), message)) {
+                updateStatus(_)
+            }
+            persist(IssueClosed) {
+                updateStatus(_)
+            }
+        case cmd => log.info("received unknown command \"{}\"", cmd)
+    }
+}
+        </code></pre>
+    </section>
+    <section>
+        <h2>Show all issues</h2>
+        <pre><code>
+class IssuesView extends PersistentView with ActorLogging {
+  override def viewId: String = actorName
+
+  override def persistenceId: String = Issues.actorName
+
+  var existingIssues = Map.empty[String, ActorRef]
+
+  override def receive: Receive = {
+    case IssueCreated(name) if (!existingIssues.contains(name)) =>
+      existingIssues = existingIssues.updated(name, context.actorOf(IssueView.props(name), IssueView.actorName(name)))
+    case GetAll =>
+      sender ! IssueSet(existingIssues.keys)
+    case query: IssueView.Query if(existingIssues.contains(query.issue)) =
+      existingIssues.get(query.issue).get forward query
+    case q => log.info("Unknown query \"{}\"", q)
+  }
+}
+        </code></pre>
+    </section>
+    <section>
+        <h2>Show all comments</h2>
+        <pre><code>
+class IssueView(name: String) extends PersistentView with ActorLogging {
+  override def viewId: String = actorName(name)
+
+  override def persistenceId: String = Issue.actorName(name)
+
+  var comments = Set.empty[Comment]
+
+  override def receive: Receive = {
+    case Issue.CommentAdded(author, date, text) =>
+      comments += Comment(author, date, text)
+    case GetComments(_) =>
+      sender ! comments
+  }
+}
+        </code></pre>
+    </section>
+    <section>
+        <h2>CQRS/ES in Akka</h2>
+        <ul>
+            <li>Eventsourcing great fit with Akka</li>
+            <li>CQRS can be useful</li>
+            <li>Both work great with clustering</li>
+            <li>Check out the Activator template</li>
+        </ul>
+    </section>
 </section>
 
+
+</section>
 <section>
     <h2>CQRS/ES</h2>
     <ul>
