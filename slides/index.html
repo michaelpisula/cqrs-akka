@@ -109,7 +109,46 @@
 
     <section>
         <h2>CQRS</h2>
-        <img src="img/cqrs-model.svg" class="fragment"/>
+        <div class="svg animated-svg" src="img/cqrs-model.svg"
+             style="margin-left:auto; margin-right: auto; margin-top: 100px;width: 970px; height: 460px;">
+            <animation data-duration="500">
+                <animate data-id="arrow1" data-property="stroke" data-value="#00ffff"></animate>
+            </animation>
+            <animation data-duration="500">
+                <animate data-id="arrow1" data-property="stroke" data-value="#d9dadb"></animate>
+                <animate data-id="arrow-q1" data-property="stroke" data-value="#00ffff"></animate>
+            </animation>
+            <animation data-duration="500">
+                <animate data-id="arrow-q1" data-property="stroke" data-value="#d9dadb"></animate>
+                <animate data-id="arrow-q2" data-property="stroke" data-value="#00ffff"></animate>
+            </animation>
+            <animation data-duration="500">
+                <animate data-id="arrow-q2" data-property="stroke" data-value="#d9dadb"></animate>
+                <animate data-id="arrow-q3" data-property="stroke" data-value="#00ffff"></animate>
+            </animation>
+            <animation data-duration="500">
+                <animate data-id="arrow-q3" data-property="stroke" data-value="#d9dadb"></animate>
+                <animate data-id="arrow-q4" data-property="stroke" data-value="#00ffff"></animate>
+            </animation>
+            <animation data-duration="500">
+                <animate data-id="arrow-q4" data-property="stroke" data-value="#d9dadb"></animate>
+                <animate data-id="arrow6" data-property="stroke" data-value="#00ffff"></animate>
+            </animation>
+            <animation data-duration="500">
+                <animate data-id="arrow6" data-property="stroke" data-value="#d9dadb"></animate>
+            </animation>
+            <animation data-duration="500">
+                <animate data-id="arrow1" data-property="stroke" data-value="#00ffff"></animate>
+            </animation>
+            <animation data-duration="500">
+                <animate data-id="arrow1" data-property="stroke" data-value="#d9dadb"></animate>
+                <animate data-id="arrow-c1" data-property="stroke" data-value="#00ffff"></animate>
+            </animation>
+            <animation data-duration="500">
+                <animate data-id="arrow-c1" data-property="stroke" data-value="#d9dadb"></animate>
+                <animate data-id="arrow-c2" data-property="stroke" data-value="#00ffff"></animate>
+            </animation>
+        </div>
     </section>
     <section>
         <h2>Commands</h2>
@@ -405,7 +444,7 @@ class IssuesView extends PersistentView with ActorLogging {
   var existingIssues = Map.empty[String, ActorRef]
 
   override def receive: Receive = {
-    case IssueCreated(name) if (!existingIssues.contains(name)) =>
+    case IssueCreated(name) =>
       existingIssues = existingIssues.updated(name, context.actorOf(IssueView.props(name), IssueView.actorName(name)))
     case GetAll =>
       sender ! IssueSet(existingIssues.keys)
