@@ -88,7 +88,7 @@
             </ul>
         </aside>
     </section>
-    <section data-background-image="img/red-sea-moses-parting-734991412.jpg">
+    <section data-background-image="img/parting_red_sea.jpg">
         <h2 class="img-background">Let's try a different approach</h2>
     </section>
 </section>
@@ -99,14 +99,34 @@
             CQRS is simply the creation of two objects where there was previously only one.
         </blockquote>
         <ul>
-            <li>grew out of DDD</li>
             <li>Separation of Commands and Queries</li>
-            <li>Not used globally, break domain into bounded context, use CQRS in single contexts</li>
             <li>Command: any method that mutates state</li>
             <li>Query: any method that returns a value</li>
         </ul>
+        <aside class="notes">
+            <ul>
+            <li>grew out of DDD</li>
+            <li>Not used globally, break domain into bounded context, use CQRS in single contexts</li>
+            </ul>
+        </aside>
     </section>
 
+    <section>
+        <h2>Commands</h2>
+        <ul>
+            <li>Commands capture user intent</li>
+            <li>Commands cover a single use case</li>
+        </ul>
+    </section>
+    <section>
+        <h2>Queries</h2>
+        <ul>
+            <li>Queries contain no domain logic</li>
+            <li>Query model can be denormalized</li>
+            <li>Queries can be optimized for fast data access</li>
+            <li>Query models can be different for different queries</li>
+        </ul>
+    </section>
     <section>
         <h2>CQRS</h2>
         <div class="svg animated-svg" src="img/cqrs-model.svg"
@@ -151,27 +171,11 @@
         </div>
     </section>
     <section>
-        <h2>Commands</h2>
+        <h2>Dealing with stale data</h2>
         <ul>
-            <li>Commands capture user intent</li>
-            <li>Commands cover a single use case</li>
-        </ul>
-    </section>
-    <section>
-        <h2>Queries</h2>
-        <ul>
-            <li>No domain logic necessary</li>
-            <li>Can use denormalized view</li>
-            <li>Optimized for fast data access</li>
-            <li>Use different Query Models for different queries</li>
-        </ul>
-    </section>
-    <section>
-        <h2>Where is the consistency?</h2>
-        <ul>
-            <li>The most often heard argument against CQRS</li>
-            <li>Query data can return outdated data until updated</li>
-            <li>Does it matter?</li>
+            <li>Query model can return outdated data until updated</li>
+            <li>Make sure this is ok in your domain</li>
+            <li>It is not as bad as you might think</li>
             <li>We already work with stale data</li>
         </ul>
         <img class="fragment" src="img/delay.svg"/>
@@ -349,7 +353,7 @@ class AView extends ^1^PersistentView^^ {
     </section>
     <section>
         <h2>Create new Issue</h2>
-        <pre><code>
+        <pre><code data-noescape>
 class Issues extends PersistentActor with ActorLogging {
 override def persistenceId: String = actorName
 
@@ -362,18 +366,19 @@ override def receiveRecover: Receive = {
 
 def updateState(event: Event) = event match {
     case IssueCreated(name) =>
-        existingIssues = existingIssues.updated(name, context.actorOf(Issue.props(name), Issue.actorName(name)))
+        existingIssues = existingIssues.updated(name,
+            ^4^context.actorOf(Issue.props(name), Issue.actorName(name))^^)
 }
 
 override def receiveCommand: Receive = {
-    case CreateNewIssue(name) if (!existingIssues.contains(name)) =>
-        persist(IssueCreated(name)) { evt =>
+    case ^1^CreateNewIssue(name)^^ ^2^if (!existingIssues.contains(name))^^ =>
+        persist(^3^IssueCreated(name)^^) { evt =>
             updateState(evt)
     }
     case CreateNewIssue(name) =>
         log.error("Issue \"{}\" already exists", name)
-    case cmd: Issue.Command if (existingIssues.contains(cmd.issue)) =>
-        existingIssues.get(cmd.issue).get forward cmd
+    case cmd: ^5^Issue.Command^^ if (existingIssues.contains(cmd.issue)) =>
+        existingIssues.get(cmd.issue).get ^6^forward cmd^^
     case cmd: Issue.Command =>
         log.error("No issue \"{}\" found", cmd.issue)
 }
@@ -382,7 +387,7 @@ override def receiveCommand: Receive = {
     </section>
     <section>
         <h2>Add Comment</h2>
-    <pre><code>
+    <pre><code data-noescape>
 class Issue(name: String) extends PersistentActor with ActorLogging {
     override def persistenceId: String = actorName(name)
 
@@ -396,7 +401,7 @@ class Issue(name: String) extends PersistentActor with ActorLogging {
 
     override def receiveCommand: Receive = {
         case AddComment(_, author, text) =>
-            persist(CommentAdded(author, LocalDateTime.now(), text)) {
+            persist(^1^CommentAdded(author, LocalDateTime.now(), text)^^) {
                 updateStatus(_)
             }
     }
@@ -405,27 +410,27 @@ class Issue(name: String) extends PersistentActor with ActorLogging {
     </section>
     <section>
         <h2>Close Issue</h2>
-        <pre><code>
+        <pre><code data-noescape>
 class Issue(name: String) extends PersistentActor with ActorLogging {
     override def persistenceId: String = actorName(name)
 
-    var closed = false
+    ^1^var closed = false^^
 
     override def receiveRecover: Receive = {
         ...
     }
 
     def updateStatus(event: Event): Unit = event match {
-        case IssueClosed => closed = true
+        ^2^case IssueClosed => closed = true^^
     }
 
     override def receiveCommand: Receive = {
-        case _ if(closed) => log.error("Issue \"{}\" is already closed", name)
+        case _ ^3^if(closed)^^ => log.error("Issue \"{}\" is already closed", name)
         case CloseIssue(_, user, message) =>
-            persist(CommentAdded(user, LocalDateTime.now(), message)) {
+            persist(^4^CommentAdded(user, LocalDateTime.now(), message)^^) {
                 updateStatus(_)
             }
-            persist(IssueClosed) {
+            persist(^5^IssueClosed^^) {
                 updateStatus(_)
             }
         case cmd => log.info("received unknown command \"{}\"", cmd)
@@ -435,7 +440,7 @@ class Issue(name: String) extends PersistentActor with ActorLogging {
     </section>
     <section>
         <h2>Show all issues</h2>
-        <pre><code>
+        <pre><code data-noescape>
 class IssuesView extends PersistentView with ActorLogging {
   override def viewId: String = actorName
 
@@ -445,11 +450,12 @@ class IssuesView extends PersistentView with ActorLogging {
 
   override def receive: Receive = {
     case IssueCreated(name) =>
-      existingIssues = existingIssues.updated(name, context.actorOf(IssueView.props(name), IssueView.actorName(name)))
-    case GetAll =>
-      sender ! IssueSet(existingIssues.keys)
-    case query: IssueView.Query if(existingIssues.contains(query.issue)) =
-      existingIssues.get(query.issue).get forward query
+      existingIssues = existingIssues.updated(name,
+            ^1^context.actorOf(IssueView.props(name), IssueView.actorName(name))^^)
+    case ^2^GetAll^^ =>
+      ^3^sender ! IssueSet(existingIssues.keys)^^
+    case query: ^3^IssueView.Query^^ if(existingIssues.contains(query.issue)) =
+      existingIssues.get(query.issue).get ^4^forward query^^
     case q => log.info("Unknown query \"{}\"", q)
   }
 }
@@ -457,7 +463,7 @@ class IssuesView extends PersistentView with ActorLogging {
     </section>
     <section>
         <h2>Show all comments</h2>
-        <pre><code>
+        <pre><code data-noescape>
 class IssueView(name: String) extends PersistentView with ActorLogging {
   override def viewId: String = actorName(name)
 
@@ -467,9 +473,9 @@ class IssueView(name: String) extends PersistentView with ActorLogging {
 
   override def receive: Receive = {
     case Issue.CommentAdded(author, date, text) =>
-      comments += Comment(author, date, text)
+      ^1^comments += Comment(author, date, text)^^
     case GetComments(_) =>
-      sender ! comments
+      ^2^sender ! comments^^
   }
 }
         </code></pre>
@@ -523,6 +529,14 @@ class IssueView(name: String) extends PersistentView with ActorLogging {
         </tr>
     </table>
     <a href="http://www.tngtech.com"><img class="logo" src="img/tng.svg"></a>
+</section>
+
+<section>
+    <h2>Pictures</h2>
+    <ul>
+        <li>Unicorn pooping rainbow: <a href="http://20px.com/blog/2013/02/09/the-curious-case-of-rainbow-pooping-unicorns/">20px.com</a></li>
+        <li>parting the red sea: <a href="https://www.flickr.com/photos/amboo213/7429036760">Flickr</a></li>
+    </ul>
 </section>
 
 </body>

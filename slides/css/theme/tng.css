@@ -244,15 +244,15 @@ body.charred .reveal .slides section .fragment.highlight.focus {
     margin-top: 200px;
 }
 
-.reveal table.contact div.email {
+.reveal table.contact div.email:before {
     content: url(../../img/email-32x32.png);
 }
 
-.reveal table.contact div.xing {
+.reveal table.contact div.xing:before {
     content: url(../../img/xing-32x32.png);
 }
 
-.reveal table.contact div.twitter {
+.reveal table.contact div.twitter:before {
     content: url(../../img/twitter-32x32.png);
 }
 
