@@ -88,8 +88,8 @@
             </ul>
         </aside>
     </section>
-    <section data-background-image="img/parting_red_sea.jpg">
-        <h2 class="img-background">Let's try a different approach</h2>
+    <section data-background-image="img/7936242434_746c62fe6d_o.jpg">
+        <h2 class="img-background">Let's split stuff!</h2>
     </section>
 </section>
 <section>
@@ -214,6 +214,10 @@
         </ul>
     </section>
     <section>
+      <h2>But I've got so many events</h2>
+        <img src="img/snapshots.jpg" class="fragment"/>
+    </section>
+    <section>
         <h2>Combining CQRS and ES</h2>
         <img src="img/es_cqrs.svg"/>
         <aside class="notes">
@@ -325,7 +329,7 @@ class AView extends ^1^PersistentView^^ {
 <section>
     <section>
         <h2>Walkthrough</h2>
-        <h3>The Issue Tracker</h3>
+        <h3>Reactive Issues</h3>
     </section>
     <section>
         <h2>Features</h2>
@@ -359,17 +363,6 @@ override def persistenceId: String = actorName
 
 var existingIssues = Map.empty[String, ActorRef]
 
-override def receiveRecover: Receive = {
-    case event: Event =>
-        updateState(event)
-}
-
-def updateState(event: Event) = event match {
-    case IssueCreated(name) =>
-        existingIssues = existingIssues.updated(name,
-            ^4^context.actorOf(Issue.props(name), Issue.actorName(name))^^)
-}
-
 override def receiveCommand: Receive = {
     case ^1^CreateNewIssue(name)^^ ^2^if (!existingIssues.contains(name))^^ =>
         persist(^3^IssueCreated(name)^^) { evt =>
@@ -382,6 +375,17 @@ override def receiveCommand: Receive = {
     case cmd: Issue.Command =>
         log.error("No issue \"{}\" found", cmd.issue)
 }
+
+override def receiveRecover: Receive = {
+    case event: Event =>
+        updateState(event)
+}
+
+def updateState(event: Event) = event match {
+    case IssueCreated(name) =>
+        existingIssues = existingIssues.updated(name,
+            ^4^context.actorOf(Issue.props(name), Issue.actorName(name))^^)
+}
 }
         </code></pre>
     </section>
@@ -391,19 +395,19 @@ override def receiveCommand: Receive = {
 class Issue(name: String) extends PersistentActor with ActorLogging {
     override def persistenceId: String = actorName(name)
 
+    override def receiveCommand: Receive = {
+        case AddComment(_, author, text) =>
+            persist(^1^CommentAdded(author, LocalDateTime.now(), text)^^) {
+                updateStatus(_)
+            }
+    }
+
     override def receiveRecover: Receive = {
         case event: Event => updateStatus(event)
     }
 
     def updateStatus(event: Event): Unit = event match {
         case e => log.debug("processing event \"{}\"",e)
-    }
-
-    override def receiveCommand: Receive = {
-        case AddComment(_, author, text) =>
-            persist(^1^CommentAdded(author, LocalDateTime.now(), text)^^) {
-                updateStatus(_)
-            }
     }
 }
     </code></pre>
@@ -416,14 +420,6 @@ class Issue(name: String) extends PersistentActor with ActorLogging {
 
     ^1^var closed = false^^
 
-    override def receiveRecover: Receive = {
-        ...
-    }
-
-    def updateStatus(event: Event): Unit = event match {
-        ^2^case IssueClosed => closed = true^^
-    }
-
     override def receiveCommand: Receive = {
         case _ ^3^if(closed)^^ => log.error("Issue \"{}\" is already closed", name)
         case CloseIssue(_, user, message) =>
@@ -434,6 +430,14 @@ class Issue(name: String) extends PersistentActor with ActorLogging {
                 updateStatus(_)
             }
         case cmd => log.info("received unknown command \"{}\"", cmd)
+    }
+
+    override def receiveRecover: Receive = {
+        ...
+    }
+
+    def updateStatus(event: Event): Unit = event match {
+        ^2^case IssueClosed => closed = true^^
     }
 }
         </code></pre>
